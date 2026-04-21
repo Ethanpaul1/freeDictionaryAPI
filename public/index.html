@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Wordly is a single-page dictionary app for searching word definitions, pronunciations, synonyms, and audio playback." />
+  <title>Wordly | Dictionary SPA</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --bg-soft: #0f1b2d;
+      --panel: rgba(10, 18, 32, 0.88);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text: #eef4ff;
+      --muted: #9eb0ca;
+      --accent: #7ef0c0;
+      --accent-2: #6ea8fe;
+      --warn: #ffbf69;
+      --error: #ff7b7b;
+      --shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --font: "Trebuchet MS", "Gill Sans", "Noto Sans", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(110, 168, 254, 0.24), transparent 30%),
+        radial-gradient(circle at top right, rgba(126, 240, 192, 0.18), transparent 28%),
+        linear-gradient(180deg, #06101d 0%, #091322 55%, #040812 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent 90%);
+      opacity: 0.45;
+    }
+
+    .app {
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      display: grid;
+      gap: 18px;
+      padding: 28px;
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(12, 20, 36, 0.9), rgba(8, 14, 27, 0.88));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      animation: rise 700ms ease both;
+    }
+
+    .eyebrow {
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-size: 0.8rem;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.7rem, 6vw, 5.2rem);
+      line-height: 0.95;
+      margin: 0;
+      max-width: 10ch;
+    }
+
+    .lede {
+      margin: 0;
+      max-width: 62ch;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    .search-form {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: stretch;
+      margin-top: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .field input {
+      width: 100%;
+      min-height: 58px;
+      padding: 0 18px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font: inherit;
+      font-size: 1.05rem;
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    .field input::placeholder {
+      color: rgba(158, 176, 202, 0.72);
+    }
+
+    .field input:focus {
+      border-color: rgba(126, 240, 192, 0.8);
+      box-shadow: 0 0 0 4px rgba(126, 240, 192, 0.16);
+      background: rgba(255, 255, 255, 0.07);
+      transform: translateY(-1px);
+    }
+
+    .search-button,
+    .ghost-button {
+      border: 0;
+      border-radius: var(--radius-lg);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease, background 160ms ease;
+    }
+
+    .search-button {
+      min-width: 150px;
+      padding: 0 22px;
+      color: #04131a;
+      background: linear-gradient(135deg, var(--accent), #d9ff9d);
+      box-shadow: 0 16px 30px rgba(126, 240, 192, 0.18);
+    }
+
+    .search-button:hover,
+    .ghost-button:hover {
+      transform: translateY(-2px);
+    }
+
+    .search-button:active,
+    .ghost-button:active {
+      transform: translateY(0);
+    }
+
+    .search-button:disabled {
+      cursor: progress;
+      opacity: 0.75;
+      transform: none;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      min-height: 28px;
+    }
+
+    .status {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .status[data-tone="error"] {
+      color: var(--error);
+    }
+
+    .status[data-tone="success"] {
+      color: var(--accent);
+    }
+
+    .results {
+      margin-top: 24px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .card {
+      padding: 24px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--panel-border);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      min-height: 240px;
+      text-align: center;
+    }
+
+    .empty-state p {
+      margin: 0;
+      max-width: 48ch;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .word-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .word-title {
+      display: grid;
+      gap: 8px;
+    }
+
+    .word-title h2 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1;
+    }
+
+    .phonetic {
+      font-size: 1.15rem;
+      color: var(--accent);
+      margin: 0;
+    }
+
+    .audio-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .audio-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .ghost-button {
+      min-width: 138px;
+      padding: 12px 18px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ghost-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      transform: none;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .panel {
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      color: var(--accent-2);
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .panel p,
+    .panel li {
+      margin: 0;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .definition-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .sense {
+      padding: 18px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sense-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .part-of-speech {
+      font-weight: 700;
+      color: var(--warn);
+      text-transform: capitalize;
+    }
+
+    .count {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .definition-list ol {
+      margin: 0;
+      padding-left: 22px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .definition-list li {
+      padding-left: 4px;
+    }
+
+    .example {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(126, 240, 192, 0.08);
+      color: var(--text);
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+      min-height: 180px;
+    }
+
+    .skeleton::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+      animation: shimmer 1.4s infinite;
+    }
+
+    @keyframes shimmer {
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 780px) {
+      .app {
+        width: min(100% - 20px, 1100px);
+        padding-top: 18px;
+      }
+
+      .hero,
+      .card {
+        padding: 20px;
+        border-radius: 22px;
+      }
+
+      .search-form {
+        grid-template-columns: 1fr;
+      }
+
+      .search-button,
+      .ghost-button {
+        width: 100%;
+      }
+
+      .meta-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .audio-wrap {
+        align-items: stretch;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero" aria-labelledby="page-title">
+      <p class="eyebrow">Single-page dictionary app</p>
+      <h1 id="page-title">Wordly finds words fast.</h1>
+      <p class="lede">
+        Search any English word to see its pronunciation, definitions, synonyms, and audio pronunciation.
+        The app uses the Free Dictionary API v2 and updates the page without reloading.
+      </p>
+
+      <form class="search-form" id="search-form" autocomplete="off" novalidate>
+        <div class="field">
+          <label for="word-input">Search a word</label>
+          <input
+            id="word-input"
+            name="word"
+            type="text"
+            inputmode="text"
+            placeholder="Try: harmony, brave, curious"
+            aria-label="Search for a word definition"
+            aria-describedby="search-help"
+          />
+        </div>
+        <button class="search-button" id="search-button" type="submit">Search</button>
+      </form>
+
+      <div class="status-row">
+        <p class="status" id="status-message" aria-live="polite">Type a word and press Search to begin.</p>
+        <p class="hint" id="search-help">Examples: hello, vivid, incredible</p>
+      </div>
+    </section>
+
+    <section class="results" id="results" aria-live="polite" aria-busy="false">
+      <article class="card empty-state" id="empty-state">
+        <p>
+          Your result card will appear here. The app will show the word, pronunciation, definitions, synonyms,
+          and an audio player when the API provides pronunciation audio.
+        </p>
+      </article>
+
+      <article class="card hidden" id="result-card">
+        <div class="word-header">
+          <div class="word-title">
+            <p class="phonetic hidden" id="phonetic"></p>
+            <h2 id="word-title">Word</h2>
+          </div>
+          <div class="audio-wrap">
+            <button class="ghost-button" id="play-audio" type="button" disabled>Play pronunciation</button>
+            <audio id="audio-player" controls class="hidden" aria-label="Word pronunciation audio"></audio>
+            <p class="audio-note" id="audio-note">No audio yet.</p>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <section class="panel" aria-labelledby="origin-heading">
+            <h3 id="origin-heading">Origin</h3>
+            <p id="origin-text">Origin will appear here.</p>
+          </section>
+
+          <section class="panel" aria-labelledby="synonyms-heading">
+            <h3 id="synonyms-heading">Synonyms</h3>
+            <div class="chips" id="synonyms-list"></div>
+            <p class="hint hidden" id="synonyms-empty">No synonyms available for this word.</p>
+          </section>
+        </div>
+
+        <section class="panel" style="margin-top:18px;" aria-labelledby="definitions-heading">
+          <h3 id="definitions-heading">Definitions</h3>
+          <div class="definition-list" id="definitions-list"></div>
+          <p class="hint hidden" id="definitions-empty">No definitions available.</p>
+        </section>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    /*
+      Free Dictionary API response shape used by Wordly:
+      [
+        {
+          word: string,
+          phonetic: string,
+          phonetics: [{ text?: string, audio?: string }],
+          origin?: string,
+          meanings: [
+            {
+              partOfSpeech: string,
+              definitions: [
+                {
+                  definition: string,
+                  example?: string,
+                  synonyms?: string[],
+                  antonyms?: string[]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    */
+
+    const API_BASE = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
+
+    const form = document.getElementById('search-form');
+    const input = document.getElementById('word-input');
+    const statusMessage = document.getElementById('status-message');
+    const searchButton = document.getElementById('search-button');
+    const results = document.getElementById('results');
+    const resultCard = document.getElementById('result-card');
+    const emptyState = document.getElementById('empty-state');
+    const wordTitle = document.getElementById('word-title');
+    const phonetic = document.getElementById('phonetic');
+    const originText = document.getElementById('origin-text');
+    const definitionsList = document.getElementById('definitions-list');
+    const definitionsEmpty = document.getElementById('definitions-empty');
+    const synonymsList = document.getElementById('synonyms-list');
+    const synonymsEmpty = document.getElementById('synonyms-empty');
+    const audioPlayer = document.getElementById('audio-player');
+    const playAudioButton = document.getElementById('play-audio');
+    const audioNote = document.getElementById('audio-note');
+
+    let currentAudioUrl = '';
+    let activeRequest = null;
+
+    function setStatus(message, tone = 'default') {
+      statusMessage.textContent = message;
+      statusMessage.dataset.tone = tone;
+    }
+
+    function setLoading(isLoading) {
+      searchButton.disabled = isLoading;
+      searchButton.textContent = isLoading ? 'Searching...' : 'Search';
+      results.setAttribute('aria-busy', String(isLoading));
+      if (isLoading) {
+        resultCard.classList.add('skeleton');
+      } else {
+        resultCard.classList.remove('skeleton');
+      }
+    }
+
+    function resetView() {
+      emptyState.classList.add('hidden');
+      resultCard.classList.remove('hidden');
+      phonetic.classList.add('hidden');
+      phonetic.textContent = '';
+      wordTitle.textContent = 'Word';
+      originText.textContent = 'Origin will appear here.';
+      definitionsList.innerHTML = '';
+      synonymsList.innerHTML = '';
+      definitionsEmpty.classList.add('hidden');
+      synonymsEmpty.classList.add('hidden');
+      audioPlayer.classList.add('hidden');
+      audioPlayer.removeAttribute('src');
+      audioPlayer.load();
+      playAudioButton.disabled = true;
+      audioNote.textContent = 'No audio yet.';
+      currentAudioUrl = '';
+    }
+
+    function showEmptyState(message) {
+      resultCard.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+      emptyState.querySelector('p').textContent = message;
+    }
+
+    function normalizeEntry(rawEntry) {
+      const phonetics = Array.isArray(rawEntry.phonetics) ? rawEntry.phonetics : [];
+      const meanings = Array.isArray(rawEntry.meanings) ? rawEntry.meanings : [];
+      const definitionGroups = meanings.map((meaning) => {
+        const definitions = Array.isArray(meaning.definitions) ? meaning.definitions : [];
+        return {
+          partOfSpeech: meaning.partOfSpeech || 'unknown',
+          definitions: definitions
+            .map((item) => ({
+              definition: item.definition || 'Definition unavailable.',
+              example: item.example || '',
+              synonyms: Array.isArray(item.synonyms) ? item.synonyms : []
+            }))
+            .filter((item) => item.definition)
+        };
+      });
+
+      const synonyms = [...new Set(
+        meanings.flatMap((meaning) => {
+          const meaningSynonyms = Array.isArray(meaning.synonyms) ? meaning.synonyms : [];
+          const definitionSynonyms = Array.isArray(meaning.definitions)
+            ? meaning.definitions.flatMap((definition) => Array.isArray(definition.synonyms) ? definition.synonyms : [])
+            : [];
+          return [...meaningSynonyms, ...definitionSynonyms];
+        }).filter(Boolean)
+      )];
+
+      const audioEntry = phonetics.find((entry) => entry && entry.audio);
+      const audioUrl = audioEntry ? audioEntry.audio : '';
+      const phoneticText = rawEntry.phonetic || phonetics.find((entry) => entry && entry.text)?.text || '';
+
+      return {
+        word: rawEntry.word || 'Unknown word',
+        phonetic: phoneticText,
+        origin: rawEntry.origin || 'No origin information was provided by the API.',
+        meanings: definitionGroups,
+        synonyms,
+        audioUrl: audioUrl ? audioUrl.startsWith('//') ? `https:${audioUrl}` : audioUrl : ''
+      };
+    }
+
+    function renderDefinitions(meanings) {
+      definitionsList.innerHTML = '';
+
+      if (!meanings.length) {
+        definitionsEmpty.classList.remove('hidden');
+        return;
+      }
+
+      definitionsEmpty.classList.add('hidden');
+
+      meanings.forEach((meaning, meaningIndex) => {
+        const section = document.createElement('article');
+        section.className = 'sense';
+
+        const title = document.createElement('div');
+        title.className = 'sense-head';
+        title.innerHTML = `
+          <span class="part-of-speech">${meaning.partOfSpeech}</span>
+          <span class="count">Meaning ${meaningIndex + 1}</span>
+        `;
+
+        const list = document.createElement('ol');
+
+        meaning.definitions.forEach((item) => {
+          const entry = document.createElement('li');
+          entry.innerHTML = `
+            <span>${item.definition}</span>
+            ${item.example ? `<span class="example">Example: ${item.example}</span>` : ''}
+          `;
+          list.appendChild(entry);
+        });
+
+        if (!meaning.definitions.length) {
+          const fallback = document.createElement('li');
+          fallback.textContent = 'No definitions were provided for this part of speech.';
+          list.appendChild(fallback);
+        }
+
+        section.appendChild(title);
+        section.appendChild(list);
+        definitionsList.appendChild(section);
+      });
+    }
+
+    function renderSynonyms(synonyms) {
+      synonymsList.innerHTML = '';
+
+      if (!synonyms.length) {
+        synonymsEmpty.classList.remove('hidden');
+        return;
+      }
+
+      synonymsEmpty.classList.add('hidden');
+
+      synonyms.slice(0, 12).forEach((synonym) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = synonym;
+        synonymsList.appendChild(chip);
+      });
+    }
+
+    function renderAudio(audioUrl) {
+      currentAudioUrl = audioUrl;
+      if (!audioUrl) {
+        playAudioButton.disabled = true;
+        audioPlayer.classList.add('hidden');
+        audioNote.textContent = 'No audio pronunciation is available for this word.';
+        return;
+      }
+
+      audioPlayer.src = audioUrl;
+      audioPlayer.classList.remove('hidden');
+      playAudioButton.disabled = false;
+      audioNote.textContent = 'Tap play to hear the pronunciation.';
+    }
+
+    function renderEntry(entry) {
+      resetView();
+      wordTitle.textContent = entry.word;
+
+      if (entry.phonetic) {
+        phonetic.textContent = entry.phonetic;
+        phonetic.classList.remove('hidden');
+      }
+
+      originText.textContent = entry.origin;
+      renderDefinitions(entry.meanings);
+      renderSynonyms(entry.synonyms);
+      renderAudio(entry.audioUrl);
+      setStatus(`Showing results for "${entry.word}".`, 'success');
+    }
+
+    async function searchWord(term) {
+      const word = term.trim();
+
+      if (!word) {
+        showEmptyState('Enter a word to search, then press Search.');
+        setStatus('Please type a word first.', 'error');
+        return;
+      }
+
+      if (activeRequest) {
+        activeRequest.abort();
+      }
+
+      activeRequest = new AbortController();
+      emptyState.classList.add('hidden');
+      resultCard.classList.remove('hidden');
+      resetView();
+      setLoading(true);
+      setStatus(`Looking up "${word}"...`);
+
+      try {
+        const response = await fetch(`${API_BASE}${encodeURIComponent(word)}`, {
+          signal: activeRequest.signal
+        });
+
+        if (!response.ok) {
+          throw new Error('The API did not return a result for that word.');
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error('No dictionary data was returned.');
+        }
+
+        const entry = normalizeEntry(data[0]);
+        renderEntry(entry);
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          return;
+        }
+
+        showEmptyState(`We could not find a result for "${word}". Try another word or check the spelling.`);
+        setStatus(error.message || 'Something went wrong while searching.', 'error');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      searchWord(input.value);
+    });
+
+    input.addEventListener('input', () => {
+      if (!input.value.trim()) {
+        setStatus('Type a word and press Search to begin.');
+      }
+    });
+
+    playAudioButton.addEventListener('click', async () => {
+      if (!currentAudioUrl) {
+        return;
+      }
+
+      try {
+        audioPlayer.currentTime = 0;
+        await audioPlayer.play();
+      } catch (error) {
+        setStatus('The browser blocked autoplay. Use the audio controls to listen.', 'error');
+      }
+    });
+
+    showEmptyState('Your result card will appear here. Try a word like "hello" or "brave" to get started.');
+  </script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 const { JSDOM } = require('jsdom'),
+    path = require('path'),
     express = require('express'),
     rateLimit = require("express-rate-limit"),
 
@@ -63,8 +64,13 @@ function handleError (error = {}) {
 };
 
 app.set('trust proxy', true);
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(limiter);
+
+app.get('/', (req, res) => {
+    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.get('/api/:version/entries/:language/:word', async (req, res) => {
     let { word, language, version } = req.params,

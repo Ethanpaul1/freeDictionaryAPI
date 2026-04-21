@@ -2,6 +2,15 @@
 
 There was no free Dictionary API on the web when I wanted one for my friend, so I created one.
 
+## Wordly SPA
+
+This repository now also includes a single-page dictionary interface at `/`.
+
+- Search any English word
+- View pronunciation, definitions, and synonyms
+- Play pronunciation audio when the API provides it
+- Uses the Free Dictionary API v2 endpoint in the browser
+
 ## Important Note
 The API usage has been ramping up rapidly, making it difficult for me to keep the server running due to increased AWS costs.
 
