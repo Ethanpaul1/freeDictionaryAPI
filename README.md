@@ -9,7 +9,16 @@ This repository now also includes a single-page dictionary interface at `/`.
 - Search any English word
 - View pronunciation, definitions, and synonyms
 - Play pronunciation audio when the API provides it
-- Uses the Free Dictionary API v2 endpoint in the browser
+- Uses the Free Dictionary API v2 endpoint directly from the browser
+- Handles empty searches, missing audio, and missing synonyms gracefully
+
+## Assignment Notes
+
+- Problem: search for a word and display pronunciation, definitions, synonyms, and audio when available
+- Design: one semantic HTML page, embedded CSS for layout, and vanilla JavaScript for fetch and DOM updates
+- Development: the SPA fetches dictionary data, parses the API response, and renders results dynamically
+- Testing: valid words, empty queries, missing synonyms, missing audio, and invalid searches are handled
+- Maintenance: the existing API project is preserved, and the SPA is documented for future updates
 
 ## Important Note
 The API usage has been ramping up rapidly, making it difficult for me to keep the server running due to increased AWS costs.

@@ -583,6 +583,16 @@
 
     let currentAudioUrl = '';
     let activeRequest = null;
+    let activeRequestId = 0;
+
+    function cancelActiveRequest() {
+      if (activeRequest) {
+        activeRequest.abort();
+      }
+
+      activeRequest = null;
+      activeRequestId += 1;
+    }
 
     function setStatus(message, tone = 'default') {
       statusMessage.textContent = message;
@@ -625,9 +635,12 @@
       emptyState.querySelector('p').textContent = message;
     }
 
-    function normalizeEntry(rawEntry) {
-      const phonetics = Array.isArray(rawEntry.phonetics) ? rawEntry.phonetics : [];
-      const meanings = Array.isArray(rawEntry.meanings) ? rawEntry.meanings : [];
+    function normalizeEntry(rawEntries) {
+      const entries = (Array.isArray(rawEntries) ? rawEntries : [rawEntries]).filter(Boolean);
+
+      const phonetics = entries.flatMap((entry) => Array.isArray(entry.phonetics) ? entry.phonetics : []);
+      const meanings = entries.flatMap((entry) => Array.isArray(entry.meanings) ? entry.meanings : []);
+
       const definitionGroups = meanings.map((meaning) => {
         const definitions = Array.isArray(meaning.definitions) ? meaning.definitions : [];
         return {
@@ -654,12 +667,15 @@
 
       const audioEntry = phonetics.find((entry) => entry && entry.audio);
       const audioUrl = audioEntry ? audioEntry.audio : '';
-      const phoneticText = rawEntry.phonetic || phonetics.find((entry) => entry && entry.text)?.text || '';
+      const phoneticText = entries.find((entry) => entry.phonetic)?.phonetic
+        || phonetics.find((entry) => entry && entry.text)?.text
+        || '';
+      const origin = entries.find((entry) => entry.origin)?.origin || 'No origin information was provided by the API.';
 
       return {
-        word: rawEntry.word || 'Unknown word',
+        word: entries[0]?.word || 'Unknown word',
         phonetic: phoneticText,
-        origin: rawEntry.origin || 'No origin information was provided by the API.',
+        origin,
         meanings: definitionGroups,
         synonyms,
         audioUrl: audioUrl ? audioUrl.startsWith('//') ? `https:${audioUrl}` : audioUrl : ''
@@ -682,19 +698,31 @@
 
         const title = document.createElement('div');
         title.className = 'sense-head';
-        title.innerHTML = `
-          <span class="part-of-speech">${meaning.partOfSpeech}</span>
-          <span class="count">Meaning ${meaningIndex + 1}</span>
-        `;
+        const partOfSpeech = document.createElement('span');
+        partOfSpeech.className = 'part-of-speech';
+        partOfSpeech.textContent = meaning.partOfSpeech;
+
+        const count = document.createElement('span');
+        count.className = 'count';
+        count.textContent = `Meaning ${meaningIndex + 1}`;
+
+        title.appendChild(partOfSpeech);
+        title.appendChild(count);
 
         const list = document.createElement('ol');
 
         meaning.definitions.forEach((item) => {
-          const entry = document.createElement('li');
-          entry.innerHTML = `
-            <span>${item.definition}</span>
-            ${item.example ? `<span class="example">Example: ${item.example}</span>` : ''}
-          `;
+            const entry = document.createElement('li');
+          const definitionText = document.createElement('span');
+          definitionText.textContent = item.definition;
+          entry.appendChild(definitionText);
+
+          if (item.example) {
+            const example = document.createElement('span');
+            example.className = 'example';
+            example.textContent = `Example: ${item.example}`;
+            entry.appendChild(example);
+          }
           list.appendChild(entry);
         });
 
@@ -768,10 +796,9 @@
         return;
       }
 
-      if (activeRequest) {
-        activeRequest.abort();
-      }
+      cancelActiveRequest();
 
+      const requestId = ++activeRequestId;
       activeRequest = new AbortController();
       emptyState.classList.add('hidden');
       resultCard.classList.remove('hidden');
@@ -785,7 +812,16 @@
         });
 
         if (!response.ok) {
-          throw new Error('The API did not return a result for that word.');
+          let errorMessage = 'The API did not return a result for that word.';
+
+          try {
+            const errorBody = await response.json();
+            errorMessage = errorBody.message || errorBody.title || errorMessage;
+          } catch (parseError) {
+            // Fall back to the generic message above.
+          }
+
+          throw new Error(errorMessage);
         }
 
         const data = await response.json();
@@ -794,7 +830,7 @@
           throw new Error('No dictionary data was returned.');
         }
 
-        const entry = normalizeEntry(data[0]);
+        const entry = normalizeEntry(data);
         renderEntry(entry);
       } catch (error) {
         if (error.name === 'AbortError') {
@@ -804,7 +840,10 @@
         showEmptyState(`We could not find a result for "${word}". Try another word or check the spelling.`);
         setStatus(error.message || 'Something went wrong while searching.', 'error');
       } finally {
-        setLoading(false);
+        if (requestId === activeRequestId) {
+          activeRequest = null;
+          setLoading(false);
+        }
       }
     }
 
@@ -816,6 +855,16 @@
     input.addEventListener('input', () => {
       if (!input.value.trim()) {
         setStatus('Type a word and press Search to begin.');
+      }
+    });
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        cancelActiveRequest();
+        input.value = '';
+        showEmptyState('Your result card will appear here. Try a word like "hello" or "brave" to get started.');
+        setStatus('Type a word and press Search to begin.');
+        input.focus();
       }
     });
 
