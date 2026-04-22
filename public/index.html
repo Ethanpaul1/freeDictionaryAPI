@@ -104,7 +104,7 @@
     .search-form {
       display: grid;
       gap: 14px;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) auto auto;
       align-items: stretch;
       margin-top: 10px;
     }
@@ -145,7 +145,9 @@
     }
 
     .search-button,
-    .ghost-button {
+    .ghost-button,
+    .clear-button,
+    .chip-button {
       border: 0;
       border-radius: var(--radius-lg);
       font: inherit;
@@ -163,12 +165,16 @@
     }
 
     .search-button:hover,
-    .ghost-button:hover {
+    .ghost-button:hover,
+    .clear-button:hover,
+    .chip-button:hover {
       transform: translateY(-2px);
     }
 
     .search-button:active,
-    .ghost-button:active {
+    .ghost-button:active,
+    .clear-button:active,
+    .chip-button:active {
       transform: translateY(0);
     }
 
@@ -283,6 +289,34 @@
       transform: none;
     }
 
+    .clear-button {
+      min-width: 110px;
+      padding: 0 18px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .quick-tools {
+      display: grid;
+      gap: 14px;
+      padding: 18px 0 0;
+    }
+
+    .tool-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tool-label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
     .meta-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -316,6 +350,48 @@
       padding-left: 18px;
       display: grid;
       gap: 12px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .summary-card {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 86px;
+    }
+
+    .summary-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--accent);
+    }
+
+    .summary-label {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .chip-button {
+      min-height: 42px;
+      padding: 0 16px;
+      background: rgba(126, 240, 192, 0.09);
+      color: var(--text);
+      border: 1px solid rgba(126, 240, 192, 0.14);
+    }
+
+    .chip-button.is-active {
+      background: linear-gradient(135deg, rgba(126, 240, 192, 0.25), rgba(110, 168, 254, 0.2));
+      border-color: rgba(126, 240, 192, 0.35);
     }
 
     .definition-list {
@@ -445,8 +521,13 @@
       }
 
       .search-button,
-      .ghost-button {
+      .ghost-button,
+      .clear-button {
         width: 100%;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .meta-grid {
@@ -464,10 +545,10 @@
   <main class="app">
     <section class="hero" aria-labelledby="page-title">
       <p class="eyebrow">Single-page dictionary app</p>
-      <h1 id="page-title">Wordly finds words fast.</h1>
+      <h1 id="page-title">Search, listen, and learn any word.</h1>
       <p class="lede">
-        Search any English word to see its pronunciation, definitions, synonyms, and audio pronunciation.
-        The app uses the Free Dictionary API v2 and updates the page without reloading.
+        Search any English word to see pronunciation, definitions, synonyms, origin, and audio playback.
+        Wordly uses the Free Dictionary API v2 and updates the page without reloading.
       </p>
 
       <form class="search-form" id="search-form" autocomplete="off" novalidate>
@@ -484,19 +565,33 @@
           />
         </div>
         <button class="search-button" id="search-button" type="submit">Search</button>
+        <button class="clear-button" id="clear-button" type="button">Clear Search</button>
       </form>
+
+      <div class="quick-tools" aria-label="Quick search tools">
+        <div class="tool-row">
+          <p class="tool-label">Popular searches</p>
+          <p class="tool-label">Press Esc to clear and stop a request.</p>
+        </div>
+        <div class="chips" id="quick-searches"></div>
+        <div class="tool-row">
+          <p class="tool-label">Recent searches</p>
+          <p class="tool-label">Saved locally on this device.</p>
+        </div>
+        <div class="chips" id="recent-searches"></div>
+      </div>
 
       <div class="status-row">
         <p class="status" id="status-message" aria-live="polite">Type a word and press Search to begin.</p>
-        <p class="hint" id="search-help">Examples: hello, vivid, incredible</p>
+        <p class="hint" id="search-help">Examples: hello, vivid, incredible. Press Enter to search.</p>
       </div>
     </section>
 
     <section class="results" id="results" aria-live="polite" aria-busy="false">
       <article class="card empty-state" id="empty-state">
         <p>
-          Your result card will appear here. The app will show the word, pronunciation, definitions, synonyms,
-          and an audio player when the API provides pronunciation audio.
+          Your result card will appear here. Wordly shows the word, pronunciation, definitions, synonyms,
+          summary counts, and an audio player when the API provides pronunciation audio.
         </p>
       </article>
 
@@ -510,6 +605,25 @@
             <button class="ghost-button" id="play-audio" type="button" disabled>Play pronunciation</button>
             <audio id="audio-player" controls class="hidden" aria-label="Word pronunciation audio"></audio>
             <p class="audio-note" id="audio-note">No audio yet.</p>
+          </div>
+        </div>
+
+        <div class="summary-grid" aria-label="Search summary">
+          <div class="summary-card">
+            <span class="summary-value" id="summary-meanings">0</span>
+            <span class="summary-label">Meaning groups</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-value" id="summary-definitions">0</span>
+            <span class="summary-label">Definitions</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-value" id="summary-synonyms">0</span>
+            <span class="summary-label">Synonyms found</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-value" id="summary-audio">No</span>
+            <span class="summary-label">Audio available</span>
           </div>
         </div>
 
@@ -567,9 +681,12 @@
     const input = document.getElementById('word-input');
     const statusMessage = document.getElementById('status-message');
     const searchButton = document.getElementById('search-button');
+    const clearButton = document.getElementById('clear-button');
     const results = document.getElementById('results');
     const resultCard = document.getElementById('result-card');
     const emptyState = document.getElementById('empty-state');
+    const quickSearches = document.getElementById('quick-searches');
+    const recentSearches = document.getElementById('recent-searches');
     const wordTitle = document.getElementById('word-title');
     const phonetic = document.getElementById('phonetic');
     const originText = document.getElementById('origin-text');
@@ -580,10 +697,17 @@
     const audioPlayer = document.getElementById('audio-player');
     const playAudioButton = document.getElementById('play-audio');
     const audioNote = document.getElementById('audio-note');
+    const summaryMeanings = document.getElementById('summary-meanings');
+    const summaryDefinitions = document.getElementById('summary-definitions');
+    const summarySynonyms = document.getElementById('summary-synonyms');
+    const summaryAudio = document.getElementById('summary-audio');
 
     let currentAudioUrl = '';
     let activeRequest = null;
     let activeRequestId = 0;
+    let recentWords = [];
+    const QUICK_WORDS = ['hello', 'brave', 'serendipity', 'curious'];
+    const STORAGE_KEY = 'wordly.recentSearches';
 
     function cancelActiveRequest() {
       if (activeRequest) {
@@ -592,6 +716,68 @@
 
       activeRequest = null;
       activeRequestId += 1;
+    }
+
+    function loadRecentSearches() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        recentWords = Array.isArray(saved) ? saved.filter(Boolean).slice(0, 5) : [];
+      } catch (error) {
+        recentWords = [];
+      }
+    }
+
+    function saveRecentSearches() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(recentWords));
+      } catch (error) {
+        // Ignore storage failures and keep the app usable.
+      }
+    }
+
+    function renderSearchButtons(container, words, activeWord = '') {
+      container.innerHTML = '';
+
+      if (!words.length) {
+        const placeholder = document.createElement('p');
+        placeholder.className = 'tool-label';
+        placeholder.textContent = 'Search a word to populate this list.';
+        container.appendChild(placeholder);
+        return;
+      }
+
+      words.forEach((word) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'chip-button';
+        const isActive = word.toLowerCase() === activeWord.toLowerCase();
+        if (isActive) {
+          button.classList.add('is-active');
+        }
+        button.setAttribute('aria-pressed', String(isActive));
+        button.textContent = word;
+        button.addEventListener('click', () => searchWord(word));
+        container.appendChild(button);
+      });
+    }
+
+    function renderQuickSearches(activeWord = '') {
+      renderSearchButtons(quickSearches, QUICK_WORDS, activeWord);
+    }
+
+    function renderRecentSearches(activeWord = '') {
+      renderSearchButtons(recentSearches, recentWords, activeWord);
+    }
+
+    function recordSearch(word) {
+      const normalized = word.trim().toLowerCase();
+      if (!normalized) {
+        return;
+      }
+
+      recentWords = [normalized, ...recentWords.filter((item) => item !== normalized)].slice(0, 5);
+      saveRecentSearches();
+      renderRecentSearches(normalized);
     }
 
     function setStatus(message, tone = 'default') {
@@ -627,6 +813,10 @@
       playAudioButton.disabled = true;
       audioNote.textContent = 'No audio yet.';
       currentAudioUrl = '';
+      summaryMeanings.textContent = '0';
+      summaryDefinitions.textContent = '0';
+      summarySynonyms.textContent = '0';
+      summaryAudio.textContent = 'No';
     }
 
     function showEmptyState(message) {
@@ -682,6 +872,10 @@
       };
     }
 
+    function getDefinitionCount(meanings) {
+      return meanings.reduce((total, meaning) => total + meaning.definitions.length, 0);
+    }
+
     function renderDefinitions(meanings) {
       definitionsList.innerHTML = '';
 
@@ -712,7 +906,7 @@
         const list = document.createElement('ol');
 
         meaning.definitions.forEach((item) => {
-            const entry = document.createElement('li');
+          const entry = document.createElement('li');
           const definitionText = document.createElement('span');
           definitionText.textContent = item.definition;
           entry.appendChild(definitionText);
@@ -784,6 +978,12 @@
       renderDefinitions(entry.meanings);
       renderSynonyms(entry.synonyms);
       renderAudio(entry.audioUrl);
+      summaryMeanings.textContent = String(entry.meanings.length);
+      summaryDefinitions.textContent = String(getDefinitionCount(entry.meanings));
+      summarySynonyms.textContent = String(entry.synonyms.length);
+      summaryAudio.textContent = entry.audioUrl ? 'Yes' : 'No';
+      renderQuickSearches(entry.word);
+      renderRecentSearches(entry.word);
       setStatus(`Showing results for "${entry.word}".`, 'success');
     }
 
@@ -832,6 +1032,7 @@
 
         const entry = normalizeEntry(data);
         renderEntry(entry);
+        recordSearch(word);
       } catch (error) {
         if (error.name === 'AbortError') {
           return;
@@ -850,6 +1051,15 @@
     form.addEventListener('submit', (event) => {
       event.preventDefault();
       searchWord(input.value);
+    });
+
+    clearButton.addEventListener('click', () => {
+      cancelActiveRequest();
+      input.value = '';
+      resetView();
+      showEmptyState('Your result card will appear here. Try a word like "hello" or "brave" to get started.');
+      setStatus('Search cleared. Type a new word to begin.');
+      input.focus();
     });
 
     input.addEventListener('input', () => {
@@ -881,6 +1091,9 @@
       }
     });
 
+    loadRecentSearches();
+    renderQuickSearches();
+    renderRecentSearches();
     showEmptyState('Your result card will appear here. Try a word like "hello" or "brave" to get started.');
   </script>
 </body>

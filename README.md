@@ -4,21 +4,31 @@ There was no free Dictionary API on the web when I wanted one for my friend, so 
 
 ## Wordly SPA
 
-This repository now also includes a single-page dictionary interface at `/`.
+This repository now includes a single-page dictionary interface at `/` that is aligned with the lab rubric.
+
+### Included Features
 
 - Search any English word
-- View pronunciation, definitions, and synonyms
+- Display pronunciation, definitions, synonyms, and origin
 - Play pronunciation audio when the API provides it
-- Uses the Free Dictionary API v2 endpoint directly from the browser
-- Handles empty searches, missing audio, and missing synonyms gracefully
+- Show summary counts for meanings, definitions, synonyms, and audio availability
+- Handle empty queries, invalid searches, missing audio, and missing synonyms gracefully
 
-## Assignment Notes
+### Rubric Fit
 
-- Problem: search for a word and display pronunciation, definitions, synonyms, and audio when available
-- Design: one semantic HTML page, embedded CSS for layout, and vanilla JavaScript for fetch and DOM updates
-- Development: the SPA fetches dictionary data, parses the API response, and renders results dynamically
-- Testing: valid words, empty queries, missing synonyms, missing audio, and invalid searches are handled
-- Maintenance: the existing API project is preserved, and the SPA is documented for future updates
+- `Search Functionality`: the form, quick searches, and recent searches make lookup intuitive
+- `Data Display`: the result card presents the API data cleanly and includes audio playback
+- `Form and Event Handling`: submit, clear, chip click, Escape, and audio actions are all wired up
+- `DOM Manipulation`: content is rendered dynamically with safe element updates
+- `Fetch API Usage`: the app fetches the Free Dictionary API v2 endpoint and handles errors
+- `Code Syntax`: the implementation is split into small readable functions
+- `Styling and UX`: the interface is responsive, polished, and submission-ready
+
+### Design Notes
+
+- One semantic HTML page with accessible labels and live regions
+- Embedded CSS for layout, color, spacing, and responsive behavior
+- Vanilla JavaScript for data fetching, parsing, rendering, and user interaction
 
 ## Important Note
 The API usage has been ramping up rapidly, making it difficult for me to keep the server running due to increased AWS costs.
